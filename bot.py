@@ -2,6 +2,7 @@
 from disnake.ext import commands
 import disnake
 from config import BOT
+from util.misc import get_unix_now
 
 class Bot(commands.InteractionBot):
     def __init__(self, **kwargs):
@@ -19,6 +20,8 @@ class Bot(commands.InteractionBot):
         pass
 
     async def on_ready(self):
+        channel = self.get_channel(BOT['LOG_CHANNEL'])
+        await channel.send(f'Bot started at {get_unix_now()}')
         print('ready', flush=True)
 
     async def on_message(self, message):

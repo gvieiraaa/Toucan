@@ -7,6 +7,7 @@ import disnake
 import httpx
 import base64
 import asyncio
+import io
 from config import POE, BOT
 
 
@@ -30,14 +31,62 @@ class PriceCheck(commands.Cog):
             await reply.delete(delay=8)
             await message.delete(delay=8)
             return
-        await self.price_it(message)
+        await self.response_handler(message)
     
-    async def price_it(self, message: disnake.Message):
+    async def response_handler(self, message: disnake.Message):
         item = base64.b64encode(bytes(message.content, 'utf-8'))
         league = POE['LEAGUE']
         async with httpx.AsyncClient() as client:
             response = await client.get(url=f'https://www.poeprices.info/api?i={item.decode("utf-8")}&l={league}')
-        await message.reply(response.json())
+        response_json: dict = response.json()
+        if response_json.get('error', None) != 0:
+            reply = await message.reply('Algo deu errado. O item pode não ser válido.')
+            await reply.delete(delay=8)
+            await message.delete(delay=8)
+            return
+
+        fp = io.BytesIO(bytes(message.content.encode("utf-8")))
+        file = disnake.File(fp, "item.txt")
+        embed = await self.create_embed(message, response_json)
+
+        await message.channel.send(message.author.mention, file=file, embed=embed)
+        await message.delete()
+
+
+    async def create_embed(self, message: disnake.Message, prediction: dict) -> disnake.Embed:
+        score_color = {
+            'baixa': disnake.Colour.red(),
+            'média': disnake.Colour.yellow(),
+            'alta': disnake.Colour.green()
+        }
+        score = prediction.get('pred_confidence_score', 0)
+        confidence = ''
+        if score < 55:
+            confidence = 'baixa'
+        elif 55 <= score < 80:
+            confidence = 'média'
+        else:
+            confidence = 'alta'
+
+        embed = disnake.Embed(
+            title=f'Entre {prediction["min"]:.2f} e {prediction["max"]:.2f} {prediction["currency"]}',
+            description=f'Confiança de {score:.2f}% ({confidence})',
+            colour=score_color[confidence]
+        )
+        embed.set_author(
+            name=message.author.display_name,
+            icon_url=message.author.avatar.url
+        )
+        
+        if 'pred_explanation' not in prediction:
+            return embed
+        
+        embed.add_field(name='Peso dos mods na estimativa:', value='', inline=False)
+
+        for mod, weight in prediction['pred_explanation']:
+            embed.add_field(name=mod, value=f'{weight:.2%}')
+
+        return embed
 
     @tasks.loop(minutes=5)
     async def instructions(self):

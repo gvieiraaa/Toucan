@@ -15,7 +15,7 @@ class Lab(commands.Cog):
 
     async def get_labs(self) -> dict:
         lab_list = ["UBER LAB", "MERC LAB", "CRUEL LAB", "NORMAL LAB"]
-        async with httpx.AsyncClient(follow_redirects=True) as c:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=10) as c:
             r = await c.get("https://www.poelab.com/")
             soup = BeautifulSoup(r, "html5lib")
             labs = {lab: soup.find("a", string=lab)["href"] for lab in lab_list}
@@ -29,8 +29,8 @@ class Lab(commands.Cog):
             print(all_labs)
             return all_labs
 
-    async def get_lab(self, url: str, c: httpx.AsyncClient) -> tuple:
-        result = await c.get(url)
+    async def get_lab(self, url: str, client: httpx.AsyncClient) -> tuple:
+        result = await client.get(url)
         soup = BeautifulSoup(result, "html5lib")
         date = soup.find("span", class_="entry-meta-date updated").a.string
         img = soup.find("img", id="notesImg")["src"]
@@ -38,14 +38,14 @@ class Lab(commands.Cog):
         assert all(x is not None for x in [date, img, json])
         return (url, date, img, json)
 
-    @commands.slash_command()
+    @commands.slash_command(description="Updates the labs in the lab channel.")
     @commands.default_member_permissions(administrator=True)
     async def update_labs(self, inter: disnake.ApplicationCommandInteraction):
         await inter.response.defer(ephemeral=True)
         await self._update_labs()
         await inter.edit_original_message("done!")
 
-    @tasks.loop(time=[datetime.time(n, 30) for n in range(4)])
+    @tasks.loop(time=[datetime.time(n, 30) for n in range(24)])
     async def task_update_labs(self):
         await self._update_labs()
 

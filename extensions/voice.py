@@ -5,6 +5,7 @@ import asyncio
 
 VOTE_THRESHOLD = 0.7
 
+
 class Voice(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
@@ -15,9 +16,25 @@ class Voice(commands.Cog):
     @commands.slash_command(
         description=f"Inicia uma votação para mover alguém para a sala de AFK."
     )
-    async def vote_move(self, inter: disnake.ApplicationCommandInteraction, member: str):
+    async def vote_move(
+        self, inter: disnake.ApplicationCommandInteraction, member: str
+    ):
+        try:
+            members = [
+                f"{member.display_name}-{member.id}"
+                for member in inter.author.voice.channel.members
+            ]
+        except AttributeError:
+            await inter.send("Usuário não encontrado", ephemeral=True)
+            return
+        if member not in members:
+            await inter.send("Usuário não encontrado", ephemeral=True)
+            return
         if self.vote_in_place:
-            await inter.send("Uma votação já está acontecendo, aguarde até ela acabar.", ephemeral=True)
+            await inter.send(
+                "Uma votação já está acontecendo, aguarde até ela acabar.",
+                ephemeral=True,
+            )
             return
         await inter.send(
             f"Votação para mover o usuário {member} para a sala {self.bot.get_channel(BOT['AFK_CHANNEL']).mention} iniciada.",
@@ -25,12 +42,19 @@ class Voice(commands.Cog):
         )
         log_channel = self.bot.get_channel(BOT["LOG_CHANNEL"])
         self.vote_in_place = True
-        await log_channel.send(f"O usuário {inter.author.mention} ({inter.author.id}) iniciou uma votação para mover {member}. Iniciada para o canal {inter.author.voice.channel.mention}.")
+        await log_channel.send(
+            f"O usuário {inter.author.mention} ({inter.author.id}) iniciou uma votação para mover {member}. Iniciada para o canal {inter.author.voice.channel.mention}."
+        )
         await self._start_vote(member, inter.author.voice.channel.id)
 
     @vote_move.autocomplete("member")
-    async def vote_move_autocomplete(inter: disnake.ApplicationCommandInteraction, string: str):
-        members = inter.author.voice.channel.members
+    async def vote_move_autocomplete(
+        inter: disnake.ApplicationCommandInteraction, string: str
+    ):
+        try:
+            members = inter.author.voice.channel.members
+        except AttributeError:
+            return
         return [f"{member.display_name}-{member.id}" for member in members]
 
     async def _start_vote(self, member: str, channel: int):
@@ -40,7 +64,13 @@ class Voice(commands.Cog):
             + f"para a sala {self.bot.get_channel(BOT['AFK_CHANNEL']).mention} iniciada."
             + f"\nReaja com:\n{self.vote_emojis[0]} para mover\n{self.vote_emojis[1]} para não mover"
         )
-        self.votes[message.id] = {"target": int(member.rpartition("-")[2]), "channel": channel, "yes": set(), "no": set(), "message": message.id}
+        self.votes[message.id] = {
+            "target": int(member.rpartition("-")[2]),
+            "channel": channel,
+            "yes": set(),
+            "no": set(),
+            "message": message.id,
+        }
         for emoji in self.vote_emojis:
             await message.add_reaction(emoji)
         await asyncio.sleep(120)
@@ -50,12 +80,14 @@ class Voice(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, reaction: disnake.RawReactionActionEvent):
         await self.reaction_handler(reaction, "add")
-        
+
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, reaction: disnake.RawReactionActionEvent):
         await self.reaction_handler(reaction, "remove")
 
-    async def reaction_handler(self, reaction: disnake.RawReactionActionEvent, reaction_type: str):
+    async def reaction_handler(
+        self, reaction: disnake.RawReactionActionEvent, reaction_type: str
+    ):
         if reaction.message_id not in self.votes.keys():
             return
         if reaction.emoji.name not in self.vote_emojis:
@@ -87,7 +119,9 @@ class Voice(commands.Cog):
             await member.move_to(afk_voice, reason="Votação (afk)")
             await general_channel.send("Usuário movido.")
             log_channel = self.bot.get_channel(BOT["LOG_CHANNEL"])
-            await log_channel.send(f"O usuário {member.mention} foi movido para a sala afk.")
+            await log_channel.send(
+                f"O usuário {member.mention} foi movido para a sala afk."
+            )
             self.vote_in_place = False
 
 

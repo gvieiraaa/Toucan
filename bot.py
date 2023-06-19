@@ -4,9 +4,10 @@ from config import BOT
 from util.misc import get_unix_now
 
 
-class Bot(commands.InteractionBot):
+class Bot(commands.Bot):
     def __init__(self, **kwargs):
         super().__init__(
+            command_prefix=".",
             owner_id=BOT["OWNER_ID"],
             test_guilds=[BOT["GUILD"]],
             intents=disnake.Intents.all(),
@@ -26,6 +27,7 @@ class Bot(commands.InteractionBot):
 
     async def on_message(self, message):
         print(message, flush=True)
+        await self.process_commands(message)
 
     def load_extensions(self):
         for name in BOT["EXTENSIONS"]:

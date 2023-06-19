@@ -1,7 +1,6 @@
 ﻿from disnake.ext import commands
 import disnake
 
-
 class Adm(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
@@ -23,7 +22,6 @@ class Adm(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def ping(self, inter: disnake.ApplicationCommandInteraction):
         await inter.send(f"Pong! ({int(self.bot.latency * 1000)} ms)")
-
 
 
 def setup(bot):

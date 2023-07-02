@@ -1,16 +1,15 @@
 ﻿from disnake.ext import commands
 import disnake
-from config import BOT
+from config import OWNER_ID, GUILD, LOG_CHANNEL, EXTENSIONS
 from util.misc import get_unix_now
-
 
 class Bot(commands.Bot):
     def __init__(self, **kwargs):
         super().__init__(
             command_prefix=".",
-            owner_id=BOT["OWNER_ID"],
-            test_guilds=[BOT["GUILD"]],
-            intents=disnake.Intents.all(),
+            owner_id=OWNER_ID,
+            test_guilds=[GUILD],
+            #intents=disnake.Intents.all(),
             **kwargs,
         )
 
@@ -21,8 +20,9 @@ class Bot(commands.Bot):
         pass
 
     async def on_ready(self):
-        channel = self.get_channel(BOT["LOG_CHANNEL"])
-        await channel.send(f"Bot started at {get_unix_now()}")
+        channel = self.get_channel(LOG_CHANNEL)
+        await channel.send(f"Bot started {get_unix_now()}")
+        await self.change_presence(activity=disnake.Game(name="Path of Exile", platform="PC"))
         print("ready", flush=True)
 
     async def on_message(self, message):
@@ -30,9 +30,18 @@ class Bot(commands.Bot):
         await self.process_commands(message)
 
     def load_extensions(self):
-        for name in BOT["EXTENSIONS"]:
+        for name in EXTENSIONS:
             file_name = f"extensions.{name}"
             self.load_extension(file_name)
+            
+    async def on_message_delete(self, message: disnake.Message):
+        if message.author.bot or message.author.id == self.owner_id:
+            return
+        adm_channel = self.get_channel(LOG_CHANNEL)
+        await adm_channel.send(
+            f"User {message.author.mention} deleted a message in {message.channel.mention} ({disnake.utils.format_dt(disnake.utils.utcnow(), style='R')})\n"
+            f"Message:\n{message.content}"
+        )
 
     async def login(self, token: str) -> None:
         print("logging in", flush=True)

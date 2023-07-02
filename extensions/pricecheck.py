@@ -4,7 +4,7 @@ import httpx
 import base64
 import asyncio
 import io
-from config import POE, BOT
+from config import PRICE_CHECK, LEAGUE
 
 
 class PriceCheck(commands.Cog):
@@ -14,7 +14,7 @@ class PriceCheck(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
-        if message.channel.id != BOT["PRICE_CHECK"]:
+        if message.channel.id != PRICE_CHECK:
             return
         if message.author.bot:
             return
@@ -35,7 +35,7 @@ class PriceCheck(commands.Cog):
 
     async def response_handler(self, message: disnake.Message):
         item = base64.b64encode(bytes(message.content, "utf-8"))
-        league = POE["LEAGUE"]
+        league = LEAGUE
         error = False
         try:
             async with httpx.AsyncClient() as client:
@@ -99,11 +99,11 @@ class PriceCheck(commands.Cog):
     @tasks.loop(minutes=5)
     async def instructions(self):
         instruction = "Para fazer price check, copie o item no jogo com `ctrl+c` e cole aqui com `ctrl+v`.\n"
-        instruction += f'A API usada só aceita itens raros e em inglês (www.poeprices.info). Liga {POE["LEAGUE"]}.\n'
+        instruction += f'A API usada só aceita itens raros e em inglês (www.poeprices.info). Liga {LEAGUE}.\n'
         instruction += "### **IMPORTANTE**: Não confie cegamente no resultado.\n"
         instruction += "É uma **estimativa** baseada em A.I., e pode estar bem longe da realidade."
         await asyncio.sleep(10)
-        channel = self.bot.get_channel(BOT["PRICE_CHECK"])
+        channel = self.bot.get_channel(PRICE_CHECK)
         async for message in channel.history(limit=1):
             if instruction in message.content:
                 return

@@ -3,7 +3,7 @@ import disnake
 import math
 import tabulate
 import httpx
-from config import POE
+from config import LEAGUE
 
 
 class PoeNinja(commands.Cog):
@@ -11,13 +11,13 @@ class PoeNinja(commands.Cog):
         self.bot: commands.Bot = bot
 
     @commands.slash_command(
-        description=f"Preço de divine/chaos na liga {POE['LEAGUE']}."
+        description=f"Preço de divine/chaos na liga {LEAGUE}."
     )
     async def divine(self, inter: disnake.ApplicationCommandInteraction):
         await self.divine_chaos(inter)
 
     @commands.slash_command(
-        description=f"Preço de divine/chaos na liga {POE['LEAGUE']}."
+        description=f"Preço de divine/chaos na liga {LEAGUE}."
     )
     async def chaos(self, inter: disnake.ApplicationCommandInteraction):
         await self.divine_chaos(inter)
@@ -45,7 +45,7 @@ class PoeNinja(commands.Cog):
                 "Não foi possível verificar o preço de divine/chaos."
             )
             return
-        msg = f"Segundo o poe.ninja uma divine vale **{math.floor(divine_in_chaos)} chaos** na liga {POE['LEAGUE']}."
+        msg = f"Segundo o poe.ninja uma divine vale **{math.floor(divine_in_chaos)} chaos** na liga {LEAGUE}."
         t1 = ["divines"]
         t1.extend([f"{i/10}" for i in range(1, 10)])
         t2 = ["chaos"]

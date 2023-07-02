@@ -1,6 +1,18 @@
 ﻿from disnake.ext import commands
 import disnake
-from config import BOT
+from config import EXTENSIONS
+
+TOUCAN = """░░░░░░░░▄▄▄▀▀▀▄▄███▄░░░░░░░░░░░░░░
+░░░░░▄▀▀░░░░░░░▐░▀██▌░░░░░░░░░░░░░
+░░░▄▀░░░░▄▄███░▌▀▀░▀█░░░░░░░░░░░░░
+░░▄█░░▄▀▀▒▒▒▒▒▄▐░░░░█▌░░░░░░░░░░░░
+░▐█▀▄▀▄▄▄▄▀▀▀▀▌░░░░░▐█▄░░░░░░░░░░░
+░▌▄▄▀▀░░░░░░░░▌░░░░▄███████▄░░░░░░
+░░░░░░░░░░░░░▐░░░░▐███████████▄░░░
+░░░░░le░░░░░░░▐░░░░▐█████████████▄
+░░░░toucan░░░░░░▀▄░░░▐█████████████▄
+░░░░░░has░░░░░░░░▀▄▄███████████████
+░░░░░arrived░░░░░░░░░░░░█▀██████░░░░░"""
 
 class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -11,7 +23,7 @@ class Owner(commands.Cog):
     async def reload_extension(
         self,
         inter: disnake.ApplicationCommandInteraction,
-        extension: str = commands.Param(choices=BOT["EXTENSIONS"]),
+        extension: str = commands.Param(choices=EXTENSIONS),
     ):
         try:
             self.bot.reload_extension(f"extensions.{extension}")
@@ -19,12 +31,16 @@ class Owner(commands.Cog):
             await inter.send(f"Could not reload the {extension} extension. Error:\n{e}", ephemeral=True)
             return
         await inter.send(f"The `{extension}` extension was reloaded.", ephemeral=True)
-
-    @commands.slash_command(description="Testing something")
+        
+        
+    @commands.slash_command(description="Toucan")
     @commands.is_owner()
-    async def t(self, inter: disnake.ApplicationCommandInteraction):
-        import datetime
-        await inter.send(datetime.datetime.utcnow())
+    async def toucan(self, inter: disnake.ApplicationCommandInteraction):
+        await inter.send(TOUCAN)
+        response = await inter.original_response()
+        print(response, flush=True)
+        for r in "🇵🇷🇦🇮🇸🇪":
+            await response.add_reaction(r)
 
 
 def setup(bot):

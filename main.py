@@ -1,7 +1,8 @@
 ﻿import logging
 import os
+import disnake
 
-from config import BOT
+from config import TOKEN
 from bot import Bot
 
 
@@ -21,11 +22,14 @@ def setup_logger():
 
 
 def setup_bot():
-    bot = Bot()
+    intents = disnake.Intents.default()
+    intents.message_content = True
+    intents.members = True
+    bot = Bot(intents=intents)
     return bot
 
 
 if __name__ == "__main__":
     log = setup_logger()
     bot = setup_bot()
-    bot.run(BOT["TOKEN"])
+    bot.run(TOKEN)

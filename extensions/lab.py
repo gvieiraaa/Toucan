@@ -4,7 +4,7 @@ from disnake.ext import commands, tasks
 import datetime
 from bs4 import BeautifulSoup
 import asyncio
-from config import BOT
+from config import LAB_CHANNEL, LAB_TRIALS_MESSAGE
 
 
 class Lab(commands.Cog):
@@ -20,13 +20,13 @@ class Lab(commands.Cog):
             soup = BeautifulSoup(r, "html5lib")
             labs = {lab: soup.find("a", string=lab)["href"] for lab in self.lab_list}
             assert len(labs) == 4
-            print(labs)
+            print("labs from poelab:", labs, flush=True)
             updated_labs = {}
             async with asyncio.TaskGroup() as tg:
                 for lab in self.lab_list:
                     updated_labs[lab] = tg.create_task(self.get_lab(labs[lab], c))
             all_labs = {x: y.result() for x, y in updated_labs.items()}
-            print(all_labs)
+            print("all labs:", all_labs)
             return all_labs
 
     async def get_lab(self, url: str, client: httpx.AsyncClient) -> tuple:
@@ -40,38 +40,36 @@ class Lab(commands.Cog):
 
     @commands.slash_command(description="Updates the labs in the lab channel.")
     @commands.default_member_permissions(administrator=True)
-    async def update_labs(self, inter: disnake.ApplicationCommandInteraction):
+    async def update_labs(self, inter: disnake.ApplicationCommandInteraction, forced: bool = False):
         await inter.response.defer(ephemeral=True)
-        await self._update_labs()
+        await self._update_labs(forced)
         await inter.edit_original_message("done!")
 
     @tasks.loop(time=[datetime.time(h, m) for h in range(24) for m in range(0, 60, 10)])
     async def task_update_labs(self):
-        await self._update_labs()
+        await self._update_labs(False)
 
-    async def _update_labs(self):
+    async def _update_labs(self, forced=False):
         now = disnake.utils.utcnow()
-        if self.last_full_lab.date() == now.date():
+        if self.last_full_lab.date() == now.date() and not forced:
             return
-
         try:
             all_labs = await self.get_labs()
         except:
-            return
+            raise("Could not get labs")
 
         up_to_date_counter = len(
-            [
-                True
-                for lab in self.lab_list
-                if now.strftime(r"%B %d, %Y") == all_labs[lab][1]
-            ]
+            [True for lab in self.lab_list if now.strftime(f"%B {now.strftime('%d').lstrip('0')}, %Y") == all_labs[lab][1]]
         )
-        if up_to_date_counter == 0:
+        print(up_to_date_counter, flush=True)
+
+        if up_to_date_counter == 0 and not forced:
             return
 
-        channel = self.bot.get_channel(BOT["LAB_CHANNEL"])
+        channel = self.bot.get_channel(LAB_CHANNEL)
         async for message in channel.history(limit=20):
-            await message.delete()
+            if message.id != LAB_TRIALS_MESSAGE:
+                await message.delete()
             await asyncio.sleep(0.2)
         for lab in reversed(self.lab_list):
             embed = disnake.Embed(

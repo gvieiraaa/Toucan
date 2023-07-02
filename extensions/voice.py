@@ -1,6 +1,6 @@
 ﻿from disnake.ext import commands
 import disnake
-from config import BOT
+from config import LOG_CHANNEL, AFK_CHANNEL, GENERAL_CHANNEL, GUILD, ID
 import asyncio
 
 VOTE_THRESHOLD = 0.7
@@ -19,10 +19,11 @@ class Voice(commands.Cog):
     async def vote_move(
         self, inter: disnake.ApplicationCommandInteraction, member: str
     ):
+        member: int = int(member)
         try:
             members = [
-                f"{member.display_name}-{member.id}"
-                for member in inter.author.voice.channel.members
+                voice_member.id
+                for voice_member in inter.author.voice.channel.members
             ]
         except AttributeError:
             await inter.send("Usuário não encontrado", ephemeral=True)
@@ -36,14 +37,16 @@ class Voice(commands.Cog):
                 ephemeral=True,
             )
             return
+        member_obj = self.bot.get_user(member)
         await inter.send(
-            f"Votação para mover o usuário {member} para a sala {self.bot.get_channel(BOT['AFK_CHANNEL']).mention} iniciada.",
+            f"Votação para mover o usuário {member_obj.display_name} para a sala {self.bot.get_channel(AFK_CHANNEL).mention} iniciada.",
             ephemeral=True,
         )
-        log_channel = self.bot.get_channel(BOT["LOG_CHANNEL"])
+        log_channel = self.bot.get_channel(LOG_CHANNEL)
         self.vote_in_place = True
+        target_member = self.bot.get_user(member)
         await log_channel.send(
-            f"O usuário {inter.author.mention} ({inter.author.id}) iniciou uma votação para mover {member}. Iniciada para o canal {inter.author.voice.channel.mention}."
+            f"O usuário {inter.author.mention} iniciou uma votação para mover {target_member.mention}. Iniciada para o canal {inter.author.voice.channel.mention}."
         )
         await self._start_vote(member, inter.author.voice.channel.id)
 
@@ -55,17 +58,23 @@ class Voice(commands.Cog):
             members = inter.author.voice.channel.members
         except AttributeError:
             return
-        return [f"{member.display_name}-{member.id}" for member in members]
+        members_list = [member.display_name for member in members]
+        if len(members_list) == len(set(members_list)):
+            return {member.display_name:str(member.id) for member in members}
+        else:
+            return {f"{member.display_name}-{member.id}":str(member.id) for member in members}
+        #return [f"{member.display_name}-{member.id}" for member in members]
 
-    async def _start_vote(self, member: str, channel: int):
-        general_channel = self.bot.get_channel(BOT["GENERAL_CHANNEL"])
+    async def _start_vote(self, member: int, channel: int):
+        general_channel = self.bot.get_channel(GENERAL_CHANNEL)
+        target_member = self.bot.get_user(member)
         message = await general_channel.send(
-            f"Votação para mover o usuário {member.rpartition('-')[0]} "
-            + f"para a sala {self.bot.get_channel(BOT['AFK_CHANNEL']).mention} iniciada."
+            f"Votação para mover o usuário {target_member.display_name} "
+            + f"para a sala {self.bot.get_channel(AFK_CHANNEL).mention} iniciada."
             + f"\nReaja com:\n{self.vote_emojis[0]} para mover\n{self.vote_emojis[1]} para não mover"
         )
         self.votes[message.id] = {
-            "target": int(member.rpartition("-")[2]),
+            "target": member,
             "channel": channel,
             "yes": set(),
             "no": set(),
@@ -74,7 +83,10 @@ class Voice(commands.Cog):
         for emoji in self.vote_emojis:
             await message.add_reaction(emoji)
         await asyncio.sleep(120)
-        await message.delete()
+        try:
+            await message.delete()
+        except:
+            pass
         self.vote_in_place = False
 
     @commands.Cog.listener()
@@ -92,7 +104,7 @@ class Voice(commands.Cog):
             return
         if reaction.emoji.name not in self.vote_emojis:
             return
-        if reaction.user_id == BOT["ID"]:
+        if reaction.user_id == ID:
             return
         if reaction.user_id == self.votes[reaction.message_id]["target"]:
             return
@@ -112,13 +124,13 @@ class Voice(commands.Cog):
         if len(only_yes_set & voice_members) / len(voice_members) >= VOTE_THRESHOLD:
             message = self.bot.get_message(vote["message"])
             await message.delete()
-            general_channel = self.bot.get_channel(BOT["GENERAL_CHANNEL"])
-            guild = self.bot.get_guild(BOT["GUILD"])
+            general_channel = self.bot.get_channel(GENERAL_CHANNEL)
+            guild = self.bot.get_guild(GUILD)
             member = guild.get_member(vote["target"])
-            afk_voice = guild.get_channel(BOT["AFK_CHANNEL"])
+            afk_voice = guild.get_channel(AFK_CHANNEL)
             await member.move_to(afk_voice, reason="Votação (afk)")
             await general_channel.send("Usuário movido.")
-            log_channel = self.bot.get_channel(BOT["LOG_CHANNEL"])
+            log_channel = self.bot.get_channel(LOG_CHANNEL)
             await log_channel.send(
                 f"O usuário {member.mention} foi movido para a sala afk."
             )

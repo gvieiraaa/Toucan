@@ -1,9 +1,7 @@
 ﻿from disnake.ext import commands
 import disnake
-from config import LOG_CHANNEL, AFK_CHANNEL, GENERAL_CHANNEL, GUILD, ID
+from config import LOG_CHANNEL, AFK_CHANNEL, GENERAL_CHANNEL, GUILD, ID, VOTE_THRESHOLD
 import asyncio
-
-VOTE_THRESHOLD = 0.7
 
 
 class Voice(commands.Cog):

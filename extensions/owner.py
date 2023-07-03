@@ -41,6 +41,17 @@ class Owner(commands.Cog):
         print(response, flush=True)
         for r in "🇵🇷🇦🇮🇸🇪":
             await response.add_reaction(r)
+            
+    @commands.slash_command(description="Adds reactions to a message.")
+    @commands.is_owner()
+    async def add_reactions(self, inter: disnake.ApplicationCommandInteraction, message_id: disnake.Message, reactions: str):
+        for reaction in reactions:
+            try:
+                await message_id.add_reaction(reaction)
+            except Exception as e:
+                await inter.send(f"Failed adding reactions: {e}", ephemeral=True)
+                return
+        await inter.send("Reactions added.", ephemeral=True)
 
 
 def setup(bot):

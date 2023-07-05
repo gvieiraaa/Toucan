@@ -2,6 +2,7 @@
 import disnake
 from disnake.ext import commands, tasks
 import datetime
+import io
 from bs4 import BeautifulSoup
 import asyncio
 from config import LAB_CHANNEL, LAB_TRIALS_MESSAGE
@@ -26,14 +27,20 @@ class Lab(commands.Cog):
                 for lab in self.lab_list:
                     updated_labs[lab] = tg.create_task(self.get_lab(labs[lab], c))
             all_labs = {x: y.result() for x, y in updated_labs.items()}
-            print("all labs:", all_labs)
+            #print("all labs:", all_labs)
             return all_labs
 
     async def get_lab(self, url: str, client: httpx.AsyncClient) -> tuple:
         result = await client.get(url)
         soup = BeautifulSoup(result, "html5lib")
         date = soup.find("span", class_="entry-meta-date updated").a.string
-        img = soup.find("img", id="notesImg")["src"]
+        #img = soup.find("img", id="notesImg")["src"]
+        try:
+            img = await client.get(soup.find("img", id="notesImg")["src"])
+        except:
+            raise Exception("Can't download image")
+        img = img.content
+
         json = soup.find("p", id="compassFile").a["href"]
         assert all(x is not None for x in [date, img, json])
         return (url, date, img, json)
@@ -73,10 +80,16 @@ class Lab(commands.Cog):
             await asyncio.sleep(0.2)
         for lab in reversed(self.lab_list):
             embed = disnake.Embed(
-                title=lab, description=f"Data: {all_labs[lab][1]}", url=all_labs[lab][0]
+                title=lab, description=f"Data: {all_labs[lab][1]}",
+                url=all_labs[lab][0]
             )
-            embed.set_image(url=all_labs[lab][2])
-            await channel.send(embed=embed)
+            file = io.BytesIO(all_labs[lab][2])
+            io.BufferedIOBase()
+            file.seek(0)
+            filename = lab.lower().replace(' ', '_')
+            img = disnake.File(fp=file, filename=f"{filename}.jpg")
+            embed.set_image(url=f"attachment://{filename}.jpg")
+            await channel.send(embed=embed, file=img)
             await asyncio.sleep(0.2)
 
         next_midnight = now.replace(

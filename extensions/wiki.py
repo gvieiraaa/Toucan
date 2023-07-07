@@ -23,7 +23,7 @@ class Wiki(commands.Cog):
         await page.goto(f"https://www.poewiki.net/wiki/{item}")
         if len(await page.content()) < 16000:
             await inter.edit_original_message(f"A página \"{item}\" não foi encontrada na wiki.")
-            page.close()
+            await page.close()
             return
         try:
             element = await page.query_selector("span.item-box")

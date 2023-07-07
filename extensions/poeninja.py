@@ -10,15 +10,11 @@ class PoeNinja(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
 
-    @commands.slash_command(
-        description=f"Preço de divine/chaos na liga {LEAGUE}."
-    )
+    @commands.slash_command(description=f"Preço de divine/chaos na liga {LEAGUE}.")
     async def divine(self, inter: disnake.ApplicationCommandInteraction):
         await self.divine_chaos(inter)
 
-    @commands.slash_command(
-        description=f"Preço de divine/chaos na liga {LEAGUE}."
-    )
+    @commands.slash_command(description=f"Preço de divine/chaos na liga {LEAGUE}.")
     async def chaos(self, inter: disnake.ApplicationCommandInteraction):
         await self.divine_chaos(inter)
 
@@ -31,9 +27,7 @@ class PoeNinja(commands.Cog):
                 )
                 response = response.json()
         except:
-            await inter.edit_original_message(
-                "Não foi possível verificar o preço de divine/chaos."
-            )
+            await inter.edit_original_message("Não foi possível verificar o preço de divine/chaos.")
             return
         divine_in_chaos = None
         for currency in response["lines"]:
@@ -46,13 +40,9 @@ class PoeNinja(commands.Cog):
             )
             return
         msg = f"Segundo o poe.ninja uma divine vale **{math.floor(divine_in_chaos)} chaos** na liga {LEAGUE}."
-        t1 = ["divines"]
-        t1.extend([f"{i/10}" for i in range(1, 10)])
-        t2 = ["chaos"]
-        t2.extend([f"{math.ceil(i * (divine_in_chaos / 10))}" for i in range(1, 10)])
-        tabulated = tabulate.tabulate(
-            tabular_data=[t1, t2], numalign="center", tablefmt="plain"
-        )
+        t1 = ["divines"].extend([f"{i/10}" for i in range(1, 10)])
+        t2 = ["chaos"].extend([f"{math.ceil(i * (divine_in_chaos / 10))}" for i in range(1, 10)])
+        tabulated = tabulate.tabulate(tabular_data=[t1, t2], numalign="center", tablefmt="plain")
         await inter.edit_original_message(f"{msg}\n\n`Particionado:\n{tabulated}`")
 
 

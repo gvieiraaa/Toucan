@@ -13,13 +13,17 @@ class Users(commands.Cog):
 
     @commands.slash_command(description="Informações sobre este servidor.")
     async def info(self, inter: disnake.ApplicationCommandInteraction):
+        online_counter = 0
         poe_counter = 0
         for member in inter.guild.members:
+            if not member.status.offline:
+                online_counter += 1
             if member.activity is not None and member.activity.name == "Path of Exile":
                 poe_counter += 1
         await inter.send(
             f"Guild criada em: {inter.guild.created_at.strftime(r'%d/%m/%Y')}\n"
             f"Total de membros: {inter.guild.member_count}\n"
+            f"Online: {online_counter}\n"
             f"{len(inter.guild.emojis)}/{inter.guild.emoji_limit} emojis usados\n"
             f"{poe_counter} estão jogando Path of Exile no momento"
         )

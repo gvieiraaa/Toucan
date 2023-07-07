@@ -1,17 +1,11 @@
 ﻿from disnake.ext import commands
 import disnake
-from config import OWNER_ID, GUILD, LOG_CHANNEL, EXTENSIONS
+from config import LOG_CHANNEL, EXTENSIONS
 from util.misc import get_unix_now
 
 class Bot(commands.Bot):
     def __init__(self, **kwargs):
-        super().__init__(
-            command_prefix=".",
-            owner_id=OWNER_ID,
-            test_guilds=[GUILD],
-            #intents=disnake.Intents.all(),
-            **kwargs,
-        )
+        super().__init__(**kwargs)
 
     async def on_connect(self):
         pass

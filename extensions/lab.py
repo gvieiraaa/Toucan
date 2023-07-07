@@ -5,45 +5,55 @@ import datetime
 import io
 from bs4 import BeautifulSoup
 import asyncio
+from collections import OrderedDict
+from dataclasses import dataclass, field
 from config import LAB_CHANNEL, LAB_TRIALS_MESSAGE
 
+@dataclass
+class Lab: # (url, date, img, json)
+    name: str
+    url: str
+    date: str
+    img: bytes = field(repr=False)
+    compass: str
 
-class Lab(commands.Cog):
+    def equal_time(self, other_dt: datetime.datetime) -> bool:
+        other_date = (
+            other_dt.strftime(r"%B ") +
+            other_dt.strftime(r"%d, ").lstrip('0') +
+            other_dt.strftime(r"%Y")
+        )
+        return self.date == other_date
+
+
+class Labs(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
-        self.task_update_labs.start()
-        self.lab_list = ["UBER LAB", "MERC LAB", "CRUEL LAB", "NORMAL LAB"]
+        self.lab_list = [f"{x} LAB" for x in ("NORMAL", "CRUEL", "MERC", "UBER")]
         self.last_full_lab = disnake.utils.utcnow() - datetime.timedelta(days=9)
+        self.task_update_labs.start()
 
-    async def get_labs(self) -> dict:
+    async def get_labs(self) -> list[Lab]:
         async with httpx.AsyncClient(follow_redirects=True, timeout=10) as c:
             r = await c.get("https://www.poelab.com/")
             soup = BeautifulSoup(r, "html5lib")
             labs = {lab: soup.find("a", string=lab)["href"] for lab in self.lab_list}
             assert len(labs) == 4
             print("labs from poelab:", labs, flush=True)
-            updated_labs = {}
+            updated_labs = []
             async with asyncio.TaskGroup() as tg:
                 for lab in self.lab_list:
-                    updated_labs[lab] = tg.create_task(self.get_lab(labs[lab], c))
-            all_labs = {x: y.result() for x, y in updated_labs.items()}
-            #print("all labs:", all_labs)
-            return all_labs
+                    updated_labs.append(tg.create_task(self.get_lab(labs[lab], lab, c)))
+            return [x.result() for x in updated_labs]
 
-    async def get_lab(self, url: str, client: httpx.AsyncClient) -> tuple:
+    async def get_lab(self, url: str, name: str, client: httpx.AsyncClient) -> tuple:
         result = await client.get(url)
         soup = BeautifulSoup(result, "html5lib")
-        date = soup.find("span", class_="entry-meta-date updated").a.string
-        #img = soup.find("img", id="notesImg")["src"]
-        try:
-            img = await client.get(soup.find("img", id="notesImg")["src"])
-        except:
-            raise Exception("Can't download image")
-        img = img.content
-
-        json = soup.find("p", id="compassFile").a["href"]
-        assert all(x is not None for x in [date, img, json])
-        return (url, date, img, json)
+        date: str = soup.find("span", class_="entry-meta-date updated").a.string
+        img = await client.get(soup.find("img", id="notesImg")["src"])
+        compass = soup.find("p", id="compassFile").a["href"]
+        assert all([date, img, compass])
+        return Lab(name, url, date, img.content, compass)
 
     @commands.slash_command(description="Updates the labs in the lab channel.")
     @commands.default_member_permissions(administrator=True)
@@ -63,12 +73,9 @@ class Lab(commands.Cog):
         try:
             all_labs = await self.get_labs()
         except:
-            raise("Could not get labs")
+            raise Exception("Could not get labs")
 
-        up_to_date_counter = len(
-            [True for lab in self.lab_list if now.strftime(f"%B {now.strftime('%d').lstrip('0')}, %Y") == all_labs[lab][1]]
-        )
-        print(up_to_date_counter, flush=True)
+        up_to_date_counter = sum(1 for lab in all_labs if lab.equal_time(now))
 
         if up_to_date_counter == 0 and not forced:
             return
@@ -78,15 +85,14 @@ class Lab(commands.Cog):
             if message.id != LAB_TRIALS_MESSAGE:
                 await message.delete()
             await asyncio.sleep(0.2)
-        for lab in reversed(self.lab_list):
+        for lab in all_labs:
             embed = disnake.Embed(
-                title=lab, description=f"Data: {all_labs[lab][1]}",
-                url=all_labs[lab][0]
+                title=lab.name, description=f"Data: {lab.date}",
+                url=lab.url
             )
-            file = io.BytesIO(all_labs[lab][2])
-            io.BufferedIOBase()
+            file = io.BytesIO(lab.img)
             file.seek(0)
-            filename = lab.lower().replace(' ', '_')
+            filename = lab.name.lower().replace(' ', '_')
             img = disnake.File(fp=file, filename=f"{filename}.jpg")
             embed.set_image(url=f"attachment://{filename}.jpg")
             await channel.send(embed=embed, file=img)
@@ -101,11 +107,11 @@ class Lab(commands.Cog):
         if up_to_date_counter < 4:
             singular = up_to_date_counter == 1
             await channel.send(
-                f"Atenção: Apenas {up_to_date_counter} dos {len(self.lab_list)} labs {'foi' if singular else 'foram'} atualizado{'' if singular else 's'} pelo poelab.com até agora."
+                f"Atenção: Apenas {up_to_date_counter} dos {len(self.lab_list)} labs {('foi','foram')[singular]} atualizado{('','s')[singular]} pelo poelab.com até agora."
             )
         else:
             self.last_full_lab = disnake.utils.utcnow()
 
 
 def setup(bot):
-    bot.add_cog(Lab(bot))
+    bot.add_cog(Labs(bot))

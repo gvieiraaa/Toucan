@@ -1,9 +1,11 @@
-﻿from disnake.ext import commands, tasks
-import disnake
-import httpx
-import base64
+﻿import base64
 import asyncio
 import io
+
+from disnake.ext import commands, tasks
+import disnake
+import httpx
+
 from config import PRICE_CHECK, LEAGUE
 
 

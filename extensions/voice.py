@@ -1,7 +1,9 @@
-﻿from disnake.ext import commands
+﻿import asyncio
+
+from disnake.ext import commands
 import disnake
+
 from config import LOG_CHANNEL, AFK_CHANNEL, GENERAL_CHANNEL, GUILD, ID, VOTE_THRESHOLD
-import asyncio
 
 
 class Voice(commands.Cog):

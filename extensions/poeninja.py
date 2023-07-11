@@ -26,7 +26,8 @@ class PoeNinja(commands.Cog):
                     "https://poe.ninja/api/data/currencyoverview?league=Crucible&type=Currency"
                 )
                 response = response.json()
-        except:
+        except Exception as e:
+            print(e, flush=True)
             await inter.edit_original_message("Não foi possível verificar o preço de divine/chaos.")
             return
         divine_in_chaos = None
@@ -40,8 +41,10 @@ class PoeNinja(commands.Cog):
             )
             return
         msg = f"Segundo o poe.ninja uma divine vale **{math.floor(divine_in_chaos)} chaos** na liga {LEAGUE}."
-        t1 = ["divines"].extend([f"{i/10}" for i in range(1, 10)])
-        t2 = ["chaos"].extend([f"{math.ceil(i * (divine_in_chaos / 10))}" for i in range(1, 10)])
+        t1 = ["divines"]
+        t1.extend([f"{i/10}" for i in range(1, 10)])
+        t2 = ["chaos"]
+        t2.extend([f"{math.ceil(i * (divine_in_chaos / 10))}" for i in range(1, 10)])
         tabulated = tabulate.tabulate(tabular_data=[t1, t2], numalign="center", tablefmt="plain")
         await inter.edit_original_message(f"{msg}\n\n`Particionado:\n{tabulated}`")
 

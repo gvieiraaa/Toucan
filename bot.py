@@ -1,5 +1,6 @@
 ﻿from disnake.ext import commands
 import disnake
+
 from config import LOG_CHANNEL, EXTENSIONS
 from util.misc import get_unix_now
 
@@ -11,12 +12,13 @@ class Bot(commands.Bot):
         pass
 
     async def on_resumed(self):
-        pass
+        await self.change_presence()
+        await self.change_presence(activity=disnake.Game(name="Path of Exile", platform="PC"), status=disnake.Status.online)
 
     async def on_ready(self):
         channel = self.get_channel(LOG_CHANNEL)
         await channel.send(f"Bot started {get_unix_now()}")
-        await self.change_presence(activity=disnake.Game(name="Path of Exile", platform="PC"))
+        await self.change_presence(activity=disnake.Game(name="Path of Exile", platform="PC"), status=disnake.Status.online)
         print("ready", flush=True)
 
     async def on_message(self, message):

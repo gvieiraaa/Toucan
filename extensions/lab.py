@@ -1,16 +1,17 @@
-﻿import httpx
-import disnake
-from disnake.ext import commands, tasks
+﻿import asyncio
 import datetime
 import io
+
+import httpx
+import disnake
+from disnake.ext import commands, tasks
 from bs4 import BeautifulSoup
-import asyncio
-from collections import OrderedDict
 from dataclasses import dataclass, field
+
 from config import LAB_CHANNEL, LAB_TRIALS_MESSAGE
 
 @dataclass
-class Lab: # (url, date, img, json)
+class Lab:
     name: str
     url: str
     date: str
@@ -46,7 +47,7 @@ class Labs(commands.Cog):
                     updated_labs.append(tg.create_task(self.get_lab(labs[lab], lab, c)))
             return [x.result() for x in updated_labs]
 
-    async def get_lab(self, url: str, name: str, client: httpx.AsyncClient) -> tuple:
+    async def get_lab(self, url: str, name: str, client: httpx.AsyncClient) -> Lab:
         result = await client.get(url)
         soup = BeautifulSoup(result, "html5lib")
         date: str = soup.find("span", class_="entry-meta-date updated").a.string
@@ -70,10 +71,7 @@ class Labs(commands.Cog):
         now = disnake.utils.utcnow()
         if self.last_full_lab.date() == now.date() and not forced:
             return
-        try:
-            all_labs = await self.get_labs()
-        except:
-            raise Exception("Could not get labs")
+        all_labs = await self.get_labs()
 
         up_to_date_counter = sum(1 for lab in all_labs if lab.equal_time(now))
 
@@ -107,7 +105,7 @@ class Labs(commands.Cog):
         if up_to_date_counter < 4:
             singular = up_to_date_counter == 1
             await channel.send(
-                f"Atenção: Apenas {up_to_date_counter} dos {len(self.lab_list)} labs {('foi','foram')[singular]} atualizado{('','s')[singular]} pelo poelab.com até agora."
+                f"Atenção: Apenas {up_to_date_counter} dos {len(self.lab_list)} labs {('foram','foi')[singular]} atualizado{('s','')[singular]} pelo poelab.com até agora."
             )
         else:
             self.last_full_lab = disnake.utils.utcnow()

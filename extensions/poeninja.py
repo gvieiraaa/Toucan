@@ -11,10 +11,12 @@ class PoeNinja(commands.Cog):
         self.bot: commands.Bot = bot
 
     @commands.slash_command(description=f"Preço de divine/chaos na liga {LEAGUE}.")
+    @commands.cooldown(rate=1, per=240, type=commands.BucketType.guild)
     async def divine(self, inter: disnake.ApplicationCommandInteraction):
         await self.divine_chaos(inter)
 
     @commands.slash_command(description=f"Preço de divine/chaos na liga {LEAGUE}.")
+    @commands.cooldown(rate=1, per=240, type=commands.BucketType.guild)
     async def chaos(self, inter: disnake.ApplicationCommandInteraction):
         await self.divine_chaos(inter)
 
@@ -28,7 +30,9 @@ class PoeNinja(commands.Cog):
                 response = response.json()
         except Exception as e:
             print(e, flush=True)
-            await inter.edit_original_message("Não foi possível verificar o preço de divine/chaos.")
+            await inter.edit_original_message(
+                "Não foi possível verificar o preço de divine/chaos."
+            )
             return
         divine_in_chaos = None
         for currency in response["lines"]:
@@ -40,13 +44,24 @@ class PoeNinja(commands.Cog):
                 "Não foi possível verificar o preço de divine/chaos."
             )
             return
-        msg = f"Segundo o poe.ninja uma divine vale **{math.floor(divine_in_chaos)} chaos** na liga {LEAGUE}."
+        embed = disnake.Embed(
+            title=f"{math.floor(divine_in_chaos)} chaos = 1 divine",
+            url="https://poe.ninja/economy/challenge/currency/divine-orb",
+        )
         t1 = ["divines"]
         t1.extend([f"{i/10}" for i in range(1, 10)])
         t2 = ["chaos"]
         t2.extend([f"{math.ceil(i * (divine_in_chaos / 10))}" for i in range(1, 10)])
-        tabulated = tabulate.tabulate(tabular_data=[t1, t2], numalign="center", tablefmt="plain")
-        await inter.edit_original_message(f"{msg}\n\n`Particionado:\n{tabulated}`")
+        tabulated = tabulate.tabulate(
+            tabular_data=[t1, t2], numalign="center", tablefmt="plain"
+        )
+        tabulated_code = "`" + tabulated.replace("\n", "`\n`") + "`"
+        embed.add_field(name="Particionado:", value=tabulated_code, inline=True)
+        embed.set_footer(
+            text="poe.ninja - liga Crucible",
+            icon_url="https://poe.ninja/images/ninja-logo.png",
+        )
+        await inter.edit_original_message(embed=embed)
 
 
 def setup(bot):

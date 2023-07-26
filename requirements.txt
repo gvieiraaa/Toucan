@@ -1,0 +1,6 @@
+﻿beautifulsoup4
+disnake
+html5lib
+httpx
+playwright
+tabulate

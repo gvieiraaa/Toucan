@@ -2,7 +2,7 @@
 import os
 import disnake
 
-from config import TOKEN, OWNER_ID, GUILD
+from config import TOKEN, OWNER_ID
 from bot import Bot
 
 
@@ -22,15 +22,12 @@ def setup_logger():
 
 
 def setup_bot():
-    intents = disnake.Intents.default()
+    intents = disnake.Intents.all()
     intents.typing = False
-    intents.message_content = True
-    intents.members = True
     command_prefix = "."
-    owner_id = OWNER_ID
     kwargs = {
         "command_prefix": command_prefix,
-        "owner_id": owner_id,
+        "owner_id": OWNER_ID,
         "intents": intents,
     }
     bot = Bot(**kwargs)

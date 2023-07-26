@@ -13,13 +13,16 @@ class Voice(commands.Cog):
         self.votes = dict()
         self.vote_in_place = False
 
-    @commands.slash_command(description=f"Inicia uma votação para mover alguém para a sala de AFK.")
-    async def vote_move(self, inter: disnake.ApplicationCommandInteraction, member: str):
+    @commands.slash_command(
+        description=f"Inicia uma votação para mover alguém para a sala de AFK."
+    )
+    async def vote_move(
+        self, inter: disnake.ApplicationCommandInteraction, member: str
+    ):
         member: int = int(member)
         try:
             members = [
-                voice_member.id
-                for voice_member in inter.author.voice.channel.members
+                voice_member.id for voice_member in inter.author.voice.channel.members
             ]
         except AttributeError:
             await inter.send("Usuário não encontrado", ephemeral=True)
@@ -47,16 +50,21 @@ class Voice(commands.Cog):
         await self._start_vote(member, inter.author.voice.channel.id)
 
     @vote_move.autocomplete("member")
-    async def vote_move_autocomplete(inter: disnake.ApplicationCommandInteraction, string: str):
+    async def vote_move_autocomplete(
+        inter: disnake.ApplicationCommandInteraction, string: str
+    ):
         try:
             members = inter.author.voice.channel.members
         except AttributeError:
             return
         member_list = [member.display_name for member in members]
         if len(member_list) == len(set(member_list)):
-            return {member.display_name:str(member.id) for member in members}
+            return {member.display_name: str(member.id) for member in members}
         else:
-            return {f"{member.display_name}-{member.id}":str(member.id) for member in members}
+            return {
+                f"{member.display_name}-{member.id}": str(member.id)
+                for member in members
+            }
 
     async def _start_vote(self, member: int, channel: int):
         general_channel = self.bot.get_channel(GENERAL_CHANNEL)

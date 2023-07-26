@@ -63,7 +63,7 @@ class Labs(commands.Cog):
         await self._update_labs(forced)
         await inter.edit_original_message("done!")
 
-    @tasks.loop(time=[datetime.time(h, m) for h in range(24) for m in range(0, 60, 10)])
+    @tasks.loop(time=[datetime.time(0, m) for m in range(0, 60, 10)] + [datetime.time(h, 0) for h in range(1, 24)])
     async def task_update_labs(self):
         await self._update_labs(False)
 
@@ -71,8 +71,13 @@ class Labs(commands.Cog):
         now = disnake.utils.utcnow()
         if self.last_full_lab.date() == now.date() and not forced:
             return
-        all_labs = await self.get_labs()
-
+        try:
+            all_labs = await self.get_labs()
+        except ExceptionGroup as e:
+            print("Failed to get labs. Error(s):", e, flush=True)
+            return
+        if all_labs is None:
+            return
         up_to_date_counter = sum(1 for lab in all_labs if lab.equal_time(now))
 
         if up_to_date_counter == 0 and not forced:
@@ -94,7 +99,6 @@ class Labs(commands.Cog):
             img = disnake.File(fp=file, filename=f"{filename}.jpg")
             embed.set_image(url=f"attachment://{filename}.jpg")
             await channel.send(embed=embed, file=img)
-            await asyncio.sleep(0.2)
 
         next_midnight = now.replace(
             hour=0, minute=0, second=0, microsecond=0

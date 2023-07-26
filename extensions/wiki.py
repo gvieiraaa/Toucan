@@ -16,14 +16,16 @@ class Wiki(commands.Cog):
 
     @commands.slash_command(description="Procurar item na wiki")
     async def wiki(self, inter: disnake.ApplicationCommandInteraction, item: str):
-        await inter.response.defer(with_message=f"Procurando \"{item}\" na wiki...")
+        await inter.response.defer(with_message=f'Procurando "{item}" na wiki...')
         if self.browser is None:
             self.pw = await async_playwright().start()
             self.browser = await self.pw.chromium.launch()
         page = await self.browser.new_page()
         await page.goto(f"https://www.poewiki.net/wiki/{item}")
         if len(await page.content()) < 16000:
-            await inter.edit_original_message(f"A página \"{item}\" não foi encontrada na wiki.")
+            await inter.edit_original_message(
+                f'A página "{item}" não foi encontrada na wiki.'
+            )
             await page.close()
             return
         try:
@@ -40,20 +42,25 @@ class Wiki(commands.Cog):
         else:
             await inter.edit_original_message(page.url)
         await page.close()
-        
+
     @wiki.autocomplete("item")
-    async def wiki_autocomplete(self, inter: disnake.ApplicationCommandInteraction, item: str):
+    async def wiki_autocomplete(
+        self, inter: disnake.ApplicationCommandInteraction, item: str
+    ):
         return await self.cached_wiki_query(item.lower())
-        
+
     async def cached_wiki_query(self, item: str):
         if item in self.queries:
             print(item, "is cached.", flush=True)
             return self.queries[item]
         async with httpx.AsyncClient() as client:
-            r = await client.get(f"https://www.poewiki.net/api.php?action=query&list=allpages&apprefix={item}&aplimit=25&format=json")
+            r = await client.get(
+                f"https://www.poewiki.net/api.php?action=query&list=allpages&apprefix={item}&aplimit=25&format=json"
+            )
         query_list = [item["title"] for item in r.json()["query"]["allpages"]]
         self.queries[item] = query_list
         return query_list
+
 
 def setup(bot):
     bot.add_cog(Wiki(bot))

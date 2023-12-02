@@ -8,6 +8,7 @@ from util.misc import get_unix_now
 class Bot(commands.Bot):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.deleted_messages: list[int] = []
 
     async def on_connect(self):
         pass
@@ -37,13 +38,12 @@ class Bot(commands.Bot):
             self.load_extension(file_name)
 
     async def on_message_delete(self, message: disnake.Message):
-        if message.author.bot or message.author.id == self.owner_id:
+        if message.author.bot: # or message.author.id == self.owner_id:
+            return
+        if message.id in self.deleted_messages:
             return
         adm_channel = self.get_channel(LOG_CHANNEL)
-        await adm_channel.send(
-            f"User {message.author.mention} deleted a message in {message.channel.mention} ({disnake.utils.format_dt(disnake.utils.utcnow(), style='R')})\n"
-            f"Message:\n{message.content}"
-        )
+        await adm_channel.send(f"A message from {message.author.mention} in {message.channel.mention} was deleted.\nMessage:\n{message.content}")
 
     async def login(self, token: str) -> None:
         print("logging in", flush=True)

@@ -28,8 +28,9 @@ class PriceCheck(commands.Cog):
             ]
         ):
             reply = await message.reply(
-                "A API só aceita fazer price check de itens raros e em inglês"
+                "A API só aceita fazer price check de itens raros e em inglês. Se não for o problema, algo mais pode ter dado errado."
             )
+            self.bot.deleted_messages.append(message.id)
             await reply.delete(delay=8)
             await message.delete(delay=8)
             return
@@ -38,25 +39,27 @@ class PriceCheck(commands.Cog):
     async def response_handler(self, message: disnake.Message):
         item = base64.b64encode(bytes(message.content, "utf-8"))
         league = LEAGUE
-        error = False
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     url=f'https://www.poeprices.info/api?i={item.decode("utf-8")}&l={league}'
                 )
+            response_json: dict = response.json()
+            print(response_json, flush=True)
+            assert response_json["error"] == 0
+            assert response_json["pred_confidence_score"] != ''
         except:
-            error = True
-        response_json: dict = response.json()
-        if response_json.get("error", None) != 0 or error:
             reply = await message.reply("Algo deu errado. O item pode não ser válido.")
-            await reply.delete(delay=8)
-            await message.delete(delay=8)
+            self.bot.deleted_messages.append(message.id)
+            await reply.delete(delay=20)
+            await message.delete(delay=20)
             return
 
         fp = io.BytesIO(bytes(message.content.encode("utf-8")))
         file = disnake.File(fp, "item.txt")
         embed = await self.create_embed(message, response_json)
 
+        self.bot.deleted_messages.append(message.id)
         await message.channel.send(message.author.mention, file=file, embed=embed)
         await message.delete()
 
@@ -100,6 +103,7 @@ class PriceCheck(commands.Cog):
 
     @tasks.loop(minutes=5)
     async def instructions(self):
+        print(self.bot.deleted_messages)
         instruction = "Para fazer price check, copie o item no jogo com `ctrl+c` e cole aqui com `ctrl+v`.\n"
         instruction += f"A API usada só aceita itens raros e em inglês (www.poeprices.info). Liga {LEAGUE}.\n"
         instruction += "### **IMPORTANTE**: Não confie cegamente no resultado.\n"
@@ -113,9 +117,12 @@ class PriceCheck(commands.Cog):
                 return
         async for message in channel.history(limit=20):
             if instruction in message.content:
+                self.bot.deleted_messages.append(message.id)
                 await message.delete()
         await channel.send(instruction)
 
 
 def setup(bot):
     bot.add_cog(PriceCheck(bot))
+
+#{'min': 0.08000000000000002, 'max': 0.12, 'currency': 'chaos', 'warning_msg': '', 'error': 0, 'pred_explanation': [], 'pred_confidence_score': '', 'error_msg': ''}

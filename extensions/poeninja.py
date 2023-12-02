@@ -25,7 +25,7 @@ class PoeNinja(commands.Cog):
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 response = await client.get(
-                    "https://poe.ninja/api/data/currencyoverview?league=Crucible&type=Currency"
+                    f"https://poe.ninja/api/data/currencyoverview?league={LEAGUE}&type=Currency"
                 )
                 response = response.json()
         except Exception as e:
@@ -58,7 +58,7 @@ class PoeNinja(commands.Cog):
         tabulated_code = "`" + tabulated.replace("\n", "`\n`") + "`"
         embed.add_field(name="Particionado:", value=tabulated_code, inline=True)
         embed.set_footer(
-            text="poe.ninja - liga Crucible",
+            text=f"poe.ninja - liga {LEAGUE}",
             icon_url="https://poe.ninja/images/ninja-logo.png",
         )
         await inter.edit_original_message(embed=embed)

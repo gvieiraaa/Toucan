@@ -65,17 +65,16 @@ class Labs(commands.Cog):
 
     @tasks.loop(time=[datetime.time(0, m) for m in range(0, 60, 10)] + [datetime.time(h, 0) for h in range(1, 24)])
     async def task_update_labs(self):
-        await self._update_labs(False)
+        try:
+            await self._update_labs(False)
+        except Exception as e:
+            print("Error: ", e)
 
     async def _update_labs(self, forced=False):
         now = disnake.utils.utcnow()
         if self.last_full_lab.date() == now.date() and not forced:
             return
-        try:
-            all_labs = await self.get_labs()
-        except ExceptionGroup as e:
-            print("Failed to get labs. Error(s):", e, flush=True)
-            return
+        all_labs = await self.get_labs()
         if all_labs is None:
             return
         up_to_date_counter = sum(1 for lab in all_labs if lab.equal_time(now))

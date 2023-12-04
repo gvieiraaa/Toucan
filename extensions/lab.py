@@ -68,7 +68,7 @@ class Labs(commands.Cog):
         try:
             await self._update_labs(False)
         except Exception as e:
-            print("Error: ", e)
+            print("Error: ", e, flush=True)
 
     async def _update_labs(self, forced=False):
         now = disnake.utils.utcnow()
